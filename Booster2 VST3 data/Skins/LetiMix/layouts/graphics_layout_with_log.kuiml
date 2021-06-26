@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<SKIN v_margin="3">
+<!-- this is a knobs-style layout for scripts that has no .kuiml -->
+
+<!-- used editable values -->
+<DEFINE>
+  <LM_AUTO_KNOB base_type="#knob_name#" scaling="#knob_scaling#" pad_px="#rc_pad#" #knob_params_placeholder#  />
+  <LM_AUTO_SWITCH base_type="#switch_name#" scaling="#switch_scaling#" pad_px="#rc_pad#" #switch_params_placeholder#  />
+  <LM_AUTO_METER base_type="#meter_name#" scaling="#meter_scaling#" pad_px="#rc_pad#" #meter_params_placeholder#  />
+</DEFINE>
+
+<!--
+<COLUMN>
+	<TEXT value='KNOB (#knob_name#) params: #knob_params_placeholder#' />
+	<TEXT value='SWITCH (#switch_name#) params: #switch_params_placeholder#' />
+	<TEXT value='METER (#meter_name#): #meter_params_placeholder#' />
+</COLUMN>
+-->
+
+<TEMPLATE id="LM_AUTO_GROUP">
+	<LM_BOX opacity="1" stroke_color="#group_stroke_color#" fill_color="#group_fill_color#" stroke_opacity="#group_stroke_opacity#" fill_opacity="#group_fill_opacity#" stroke_width="#group_stroke_width#" round="#group_round#" />
+</TEMPLATE>
+
+<LV id="ORIENTATION" value="#orientation#" /> <!-- 0 - rows (horizontal), 1 - columns (vertical) -->
+<LV id="MAX_ITEMS_IN_LINE" formula="#max_in_line#" />
+<LV id="GROUP_BY" value="#group_by#" />
+
+<LV id="GROUP_CONVERGENCE" value="#group_converge#" />
+<LV id="ITEM_V_MARGIN" formula="#item_v_margin#" />
+<LV id="ITEM_H_MARGIN" value="#item_h_margin#" />
+<LV id="ITEM_HEIGHT" formula="#item_height# - $ITEM_V_MARGIN$*2" />
+<LV id="ITEM_WIDTH" formula="#item_width# - $ITEM_H_MARGIN$*2" />
+
+<LV id="TXNAME_V_OFFSET" value="#textname_v_offset#" />
+<LV id="TXVALUE_V_OFFSET" value="#textvalue_v_offset#" /> <!-- can adjust depending on knob type -->
+
+<LV id="GROUP_H_MARGIN" formula="#group_h_margin#" />
+<LV id="GROUP_V_MARGIN" formula="#group_v_margin#" />
+<LV id="RC_PAD_PX" formula="#rc_pad#" /> <!-- render controls pad -->
+
+<!-- end of used editable values -->
+
+<!-- fixed values -->
+<LV id="BLOCK_H_MARGIN" value="20" />
+<LV id="OVERALL_V_OFFSET" value="1" />
+
+<!-- end of fixed values -->
+
+<!-- No Parameters box, if no script parameters available-->
+<FORMULA_PARAM id="no_controls_available" formula="($script_input_params_count$+$script_output_params_count$+$script_input_strings_count$+$script_output_strings_count$ + #in_params_count# + #out_params_count#)==0"/>
+<PARAM_LINK from="no_controls_available" to="no_controls_box.display"/>
+<CELL spacing="0" layout_type="column" id="no_controls_box" display="false" height="90">
+  <TEXT value="This script has no controls."/>
+</CELL>
+
+
+<!-- calculated values -->
+<LV id="TOTAL_CONTROLS_COUNT" formula="#in_params_count# + #out_params_count#" />
+<LV id="TOTAL_STRINGS_COUNT" formula="#in_strings_count# + #out_strings_count#" />
+<LV id="ITEMS_IN_LINE" formula="($TOTAL_CONTROLS_COUNT$ >= $MAX_ITEMS_IN_LINE$)*$MAX_ITEMS_IN_LINE$ + ($TOTAL_CONTROLS_COUNT$ &lt;$MAX_ITEMS_IN_LINE$)*$TOTAL_CONTROLS_COUNT$" />
+<LV id="LINES_COUNT" formula="ceil($TOTAL_CONTROLS_COUNT$ / $MAX_ITEMS_IN_LINE$)" />
+
+<LV id="GROUPS_IN_LINE" formula="0" />
+<LV id="ITEMS_IN_LAST_GROUP" formula="0" />
+<R count="($GROUP_BY$ > 0)">
+	<LV id="GROUPS_IN_LINE" formula="ceil($ITEMS_IN_LINE$/$GROUP_BY$)" />
+	<LV id="ITEMS_IN_LAST_GROUP" formula="$ITEMS_IN_LINE$ - (floor($ITEMS_IN_LINE$/$GROUP_BY$)*$GROUP_BY$)" />
+</R>
+<R count="($GROUP_BY$ == 0)">
+	<LV id="GROUP_CONVERGENCE" value="0" />
+</R>
+
+<LV id="A_LAYOUT_TYPE" value="row" />
+<R count="($ORIENTATION$>0)"> <!-- vertical layout -->
+	<LV id="A_LAYOUT_TYPE" value="column" />
+</R>
+
+<LV id="AREA_WIDTH" value="300" /> <!-- default value used when no controls -->
+<LV id="AREA_HEIGHT" value="" />
+
+<R count="($TOTAL_STRINGS_COUNT$ > 0)" index_name="_none">
+	<LV id="AREA_WIDTH" value="450" /> <!-- default value when only strings -->
+</R>
+
+<R count="($TOTAL_CONTROLS_COUNT$ > 0)" index_name="_none11">
+	<R count="($ORIENTATION$==0)"> <!-- normal (horizontal) layout -->
+		<LV id="AREA_WIDTH" formula="$ITEM_WIDTH$*$ITEMS_IN_LINE$ + $ITEM_H_MARGIN$*2*($ITEMS_IN_LINE$)" />
+		<LV id="AREA_HEIGHT" formula="$ITEM_HEIGHT$*$LINES_COUNT$ + $ITEM_V_MARGIN$*2*($LINES_COUNT$) " />
+	</R>
+	<R count="($ORIENTATION$>0)"> <!-- vertical layout -->
+		<LV id="AREA_HEIGHT" formula="$ITEM_HEIGHT$*$ITEMS_IN_LINE$ + $ITEM_V_MARGIN$*2*($ITEMS_IN_LINE$) " />
+		<LV id="AREA_WIDTH" formula="$ITEM_WIDTH$*$LINES_COUNT$ + $ITEM_H_MARGIN$*2*($LINES_COUNT$)" />
+	</R>
+</R>
+
+<LV id="ITEM_HEIGHT_WITH_MARGING" formula="$ITEM_HEIGHT$ + $ITEM_V_MARGIN$*2" />
+
+<!-- //////////////// -->
+<!-- START THE LAYOUT -->
+<!-- //////////////// -->
+
+<!-- showing input/output strings only if they are present -->
+<R count="($TOTAL_STRINGS_COUNT$ > 0)" index_name="_none11">
+	<STRING id="colon" default=":" />
+	<COLUMN>	
+		
+		<!-- input strings -->
+		<REPEAT count="#in_strings_count# > 0" index_name="__none3">
+			<LAYER_STACK width="$AREA_WIDTH$" h_margin="$GROUP_H_MARGIN$" v_margin="$GROUP_V_MARGIN$" v_offset='$OVERALL_V_OFFSET$'>
+			<LM_AUTO_GROUP />
+				<CELL margin="10" h_margin='12' width='100%' text_color="#text_color#">
+					
+					<COLUMN width='100%' spacing="8">
+						<REPEAT count="#in_strings_count#">
+						  <ROW id="in_string_cell$index$" spacing="10" width="100%">
+						  	<STRING id="concat_in_$index$" default="" />
+						  	<STRING_MULTI_LINK from="$script_input_string$index$_name$;colon" to="concat_in_$index$" />
+						    <TEXT string_id="concat_in_$index$" text_h_align="left"/>
+						    <TEXT_EDIT_BOX string_id="$script_input_string$index$$" background_color="#FFFFFF" text_color="#000000" show_edges="true" flex="1" height="100%"/>
+						  </ROW>
+						</REPEAT>
+					</COLUMN> 
+				</CELL>
+			</LAYER_STACK>
+		</REPEAT>
+
+		<!-- output strings -->
+		<REPEAT count="#out_strings_count# > 1" index_name="__none4">
+			<LAYER_STACK width="$AREA_WIDTH$" h_margin="$GROUP_H_MARGIN$" v_margin="$GROUP_V_MARGIN$" v_offset='$OVERALL_V_OFFSET$'>
+			<LM_AUTO_GROUP />
+				<CELL margin="10" h_margin='12' width='100%' text_color="#text_color#">
+					<COLUMN  width='100%' spacing="4">
+						<REPEAT count="(#out_strings_count# - 1)" start="1">
+						  <ROW id="out_string_cell$index$" spacing="10" width="100%">
+						  	<STRING id="concat_out_$index$" default="" />
+						  	<STRING_MULTI_LINK from="$script_output_string$index$_name$;colon" to="concat_out_$index$" />
+						  	<CELL>
+						    	<TEXT string_id="concat_out_$index$" text_h_align="left"/>
+						    </CELL>
+						    <CELL flex="1">
+						    	<TEXT string_id="$script_output_string$index$$" width="100%" text_h_align="left" />
+						    </CELL>
+						  </ROW>
+						</REPEAT>
+					</COLUMN> 
+				</CELL>
+			</LAYER_STACK>
+		</REPEAT>
+	</COLUMN>
+</R>
+
+<TEMPLATE id="CALC_CONTROL_POS">
+	<LV id="OFFSET_IN_GROUP" formula="($N_IN_GROUP$ - 1) - ($GROUP_BY$ - 1)/2" />
+	<R count="$IS_LAST_GROUP_IN_LINE$*($ITEMS_IN_LAST_GROUP$!=0)">
+		<LV id="OFFSET_IN_GROUP" formula="($N_IN_GROUP$ - 1) - ($ITEMS_IN_LAST_GROUP$ - 1)/2" />
+	</R>
+	
+	<VAR id="ITEM_H_OFFSET" formula="$OFFSET_IN_GROUP$*(-1)*$GROUP_CONVERGENCE$" />
+	<VAR id="ITEM_V_OFFSET" formula="0" />
+	<LV id="ITEM_GUI_X" formula="- ($AREA_WIDTH$ * 0.5) + ($AREA_WIDTH$ / $ITEMS_IN_LINE$) * ($N_IN_LINE$-1)  + $ITEM_H_OFFSET$ - $RC_PAD_PX$ + ($AREA_WIDTH$ / $ITEMS_IN_LINE$)*0.5 " />
+	<LV id="ITEM_GUI_Y" formula="($AREA_HEIGHT$ / $LINES_COUNT$) * ($LINE_NO$) - ($AREA_HEIGHT$ * 0.5) - $RC_PAD_PX$  + ($AREA_HEIGHT$ / $LINES_COUNT$)*0.5 " />
+	<R count="($ORIENTATION$>0)"> <!-- vertical layout -->
+		<VAR id="ITEM_H_OFFSET" formula="0" />
+		<VAR id="ITEM_V_OFFSET" formula="$OFFSET_IN_GROUP$*(-1)*$GROUP_CONVERGENCE$" />
+		<LV id="ITEM_GUI_X" formula="($AREA_WIDTH$ / $LINES_COUNT$) * ($LINE_NO$)  - ($AREA_WIDTH$ * 0.5) + $ITEM_H_OFFSET$ - $RC_PAD_PX$ + ($AREA_WIDTH$ / $LINES_COUNT$)*0.5" />
+		<LV id="ITEM_GUI_Y" formula="($AREA_HEIGHT$ / $ITEMS_IN_LINE$) * ($N_IN_LINE$-1) - ($AREA_HEIGHT$ * 0.5) + $ITEM_V_OFFSET$ - $RC_PAD_PX$ + ($AREA_HEIGHT$ / $ITEMS_IN_LINE$)*0.5" />
+	</R>
+
+	<!--
+	<TEXT value="$ITEM_GUI_X$, $ITEM_GUI_Y$" v_offset="-40" text_color="#DD0000" width="80"  /> 
+	
+	<TEXT value="$LINE_NO$, $ITEM_GUI_X$, $ITEM_GUI_Y$" v_offset="-40" text_color="#FFFFFFF" width="80"  />
+	<TEXT value="$OFFSET_IN_GROUP$" v_offset="-40" text_color="#DD0000"  />
+	<TEXT value="$N_IN_GROUP$" v_offset="-40"/>
+	<TEXT value="$N_IN_LINE$" v_offset="40"/>
+	<TEXT value="$GROUP_IN_LINE$" v_offset="60" text_color="#DD0000" />
+	<TEXT value="$IS_LAST_GROUP_IN_LINE$" v_offset="60" h_offset="20" text_color="#00DD00" /> 
+	-->
+	
+	<!-- calculate next control vars -->
+	<LV id="LINE_NO" formula="$LINE_NO$ + ($N_IN_LINE$ == $ITEMS_IN_LINE$)*1" />
+	<LV id="N_IN_LINE" formula="$N_IN_LINE$+1" />
+	<LV id="N_IN_LINE" formula="($N_IN_LINE$ > $ITEMS_IN_LINE$)*1 + ($N_IN_LINE$ &lt;= $ITEMS_IN_LINE$)*$N_IN_LINE$" />
+	<LV id="N_IN_GROUP" formula="$N_IN_GROUP$+1" />
+	<LV id="N_IN_GROUP" formula="($N_IN_GROUP$ > $GROUP_BY$)*1 + ($N_IN_GROUP$ &lt;= $GROUP_BY$)*$N_IN_GROUP$" />
+	<LV id="N_IN_GROUP" formula="($N_IN_LINE$ == 1)*1 + ($N_IN_LINE$ > 1)*$N_IN_GROUP$" />
+
+	<LV id="GROUP_IN_LINE" formula="($N_IN_GROUP$ == 1)*($GROUP_IN_LINE$+1) + ($N_IN_GROUP$ != 1)*$GROUP_IN_LINE$" />
+	<LV id="GROUP_IN_LINE" formula="($N_IN_LINE$ == 1)*(1) + ($N_IN_LINE$ > 1)*$GROUP_IN_LINE$" />
+
+	<LV id="IS_LAST_GROUP_IN_LINE" formula="($GROUP_IN_LINE$ == $GROUPS_IN_LINE$)" />
+</TEMPLATE>
+
+<!-- showing controls area only if controls are present -->
+<R count="($TOTAL_CONTROLS_COUNT$ > 0)" index_name="_none11">
+	<LAYER_STACK h_margin="$BLOCK_H_MARGIN$" v_offset='$OVERALL_V_OFFSET$'>
+		<_SVG_BG color="#00DD00" />
+		
+		<!-- groups -->
+		<R count="$GROUP_BY$ > 0">
+
+			<LV id="ITEMS_IN_LAST_LINE" formula="$TOTAL_CONTROLS_COUNT$ - $ITEMS_IN_LINE$*($LINES_COUNT$-1)" />
+			<LV id="GROUPS_IN_LAST_LINE" formula="ceil($ITEMS_IN_LAST_LINE$/$GROUP_BY$)" />
+
+			<LV id="G_ITEM_W" formula="($ITEM_WIDTH$+$ITEM_H_MARGIN$*2)" />
+			<LV id="G_ITEM_H" formula="($ITEM_HEIGHT$+$ITEM_V_MARGIN$*2)" />
+			<LV id="GROUP_HEIGHT" formula="$G_ITEM_H$" />
+			<LV id="GROUP_WIDTH" formula="$G_ITEM_W$*$GROUP_BY$" />
+			<LV id="LAST_GROUP_WIDTH" formula="$G_ITEM_W$*$ITEMS_IN_LAST_GROUP$" />
+			<LV id="LAST_GROUP_HEIGHT" formula="$G_ITEM_H$" />
+			
+			<LV id="G_LAYOUT" value="column" />
+			<LV id="G_LAYOUT_INV" value="row" />
+			<R count="($ORIENTATION$>0)"> <!-- vertical layout -->
+				<LV id="G_LAYOUT" value="row" />
+				<LV id="G_LAYOUT_INV" value="column" />
+				<LV id="GROUP_HEIGHT" formula="$G_ITEM_H$*$GROUP_BY$" />
+				<LV id="GROUP_WIDTH" formula="$G_ITEM_W$" />
+				<LV id="LAST_GROUP_WIDTH" formula="$G_ITEM_W$" />
+				<LV id="LAST_GROUP_HEIGHT" formula="$G_ITEM_H$*$ITEMS_IN_LAST_GROUP$" />
+			</R>
+
+			<CELL width="100%" height="100%" id="groups_cell" layout_type="$G_LAYOUT$" internal_v_align="top" internal_h_align="left">
+				<REPEAT count="$LINES_COUNT$" index_name="line_index">
+					<LV id="DISPLAY_GROUP" value="true" />
+					
+					<CELL layout_type="$G_LAYOUT_INV$" h_align="left" v_align="top">
+				  <REPEAT count="$GROUPS_IN_LINE$-($ITEMS_IN_LAST_GROUP$ != 0)" index_name="group_index">
+				  	<!-- hiding empty groups -->
+				  	<R count="($line_index$ == ($LINES_COUNT$-1))*($group_index$>($GROUPS_IN_LAST_LINE$-1))">
+				  		<LV id="DISPLAY_GROUP" value="false" />
+				  	</R>
+				    <CELL width="$GROUP_WIDTH$" height="$GROUP_HEIGHT$" v_align="top" h_margin="$GROUP_H_MARGIN$" v_margin="$GROUP_V_MARGIN$" display="$DISPLAY_GROUP$">
+				      <LM_AUTO_GROUP />
+				    </CELL>
+				  </REPEAT>
+				  <REPEAT count="($ITEMS_IN_LAST_GROUP$ != 0)">
+				  	<!-- hiding empty groups -->
+				  	<R count="($line_index$ == ($LINES_COUNT$-1))*($GROUPS_IN_LAST_LINE$&lt;$GROUPS_IN_LINE$)">
+				  		<LV id="DISPLAY_GROUP" value="false" />
+				  	</R>
+						<CELL width="$LAST_GROUP_WIDTH$" height="$LAST_GROUP_HEIGHT$" v_align="top" h_margin="$GROUP_H_MARGIN$" v_margin="$GROUP_V_MARGIN$" display="$DISPLAY_GROUP$">
+				      <LM_AUTO_GROUP />
+				    </CELL>
+				  </REPEAT>
+					</CELL>
+				 </REPEAT>
+			</CELL>
+		</R>
+
+		<!-- controls -->
+		<VAR id="CONTROLS_COUNT_FEEDBACK" value="" />
+
+		<CELL layout_type="$A_LAYOUT_TYPE$" h_align="center" internal_v_align="top" internal_h_align="left" reflow="true" width="$AREA_WIDTH$" height="$AREA_HEIGHT$" text_color="#text_color#">
+			
+			<VAR id="N_IN_LINE" formula="1" />
+			<VAR id="N_IN_GROUP" formula="1" />
+			<VAR id="GROUP_IN_LINE" formula="1" />
+			<VAR id="IS_LAST_GROUP_IN_LINE" formula="0" />
+			<VAR id="OFFSET_IN_GROUP" formula="0" />
+			<VAR id="ITEM_H_OFFSET" formula="0" />
+			<VAR id="ITEM_V_OFFSET" formula="0" />
+			<VAR id="LINE_NO" formula="0" />
+			<VAR id="ITEM_GUI_X" formula="0" />
+			<VAR id="ITEM_GUI_Y" formula="0" />
+
+			<!-- input params -->
+			<REPEAT count="#in_params_count# > 0" index_name="__none0">
+					<REPEAT count="#in_params_count#">
+						<LAYER_STACK  h_margin="$ITEM_H_MARGIN$">
+							<!--<_SVG_BG color="#DD0000" /> -->
+							<CALC_CONTROL_POS />
+							<CELL width="$ITEM_WIDTH$" v_margin="$ITEM_V_MARGIN$" height="$ITEM_HEIGHT_WITH_MARGING$" h_align="left" h_offset="$ITEM_H_OFFSET$" v_offset="$ITEM_V_OFFSET$">
+								<CELL width="100%" v_offset='$TXNAME_V_OFFSET$'><PARAM_TEXT param_id="custom_param$index$" content="{name}" fit_text="abbreviate" font_weight="bold" v_offset='0' width="100%"><PARAM_TOOLTIP param_id='custom_param$index$' content="{name}" /></PARAM_TEXT></CELL>
+								<LS flex="1">
+									<LM_AUTO_KNOB param_id="custom_param$index$" id="input_control$index$" gui_x="$ITEM_GUI_X$" gui_y="$ITEM_GUI_Y$" gui_xy_centered="1" />
+									<LM_AUTO_SWITCH param_id="custom_param$index$" id="input_control_switch$index$" gui_x="$ITEM_GUI_X$" gui_y="$ITEM_GUI_Y$" gui_xy_centered="1"  />
+								</LS>
+								<CELL v_offset='$TXVALUE_V_OFFSET$' width="100%" ><PARAM_TEXT width="100%" param_id="custom_param$index$" cursor="$CUR_SIZE_V$" font_size="-1"><IPMB param_id="custom_param$index$" visible="false" id="input_control_menu$index$" reverse_mouse_wheel="false" /></PARAM_TEXT></CELL>
+							</CELL>
+						</LAYER_STACK>
+					</REPEAT>
+			</REPEAT>
+
+			<!-- output params -->
+			<REPEAT count="#out_params_count# > 0" index_name="__none1">
+					<REPEAT count="#out_params_count#">
+						<LAYER_STACK  h_margin="$ITEM_H_MARGIN$">
+							<!--<_SVG_BG color="#DD0000" /> -->
+							<CALC_CONTROL_POS />
+							<CELL width="$ITEM_WIDTH$" v_margin="$ITEM_V_MARGIN$" height="$ITEM_HEIGHT_WITH_MARGING$" h_align="left" h_offset="$ITEM_H_OFFSET$" v_offset="$ITEM_V_OFFSET$">
+								<CELL width="100%" v_offset='$TXNAME_V_OFFSET$'><PARAM_TEXT param_id="custom_out_param$index$" content="{name}" fit_text="abbreviate" font_weight="bold" v_offset='0' width="100%"><PARAM_TOOLTIP param_id='custom_out_param$index$' content="{name}" /></PARAM_TEXT></CELL>
+								<CELL flex="1"><LM_AUTO_METER param_id="custom_out_param$index$" gui_x="$ITEM_GUI_X$" gui_y="$ITEM_GUI_Y$" gui_xy_centered="1" id="output_control$index$" /></CELL>
+								<CELL width="100%" v_offset='$TXVALUE_V_OFFSET$'><PARAM_TEXT width="100%" param_id="custom_out_param$index$" cursor="$CUR_SIZE_V$" font_size="-1" /></CELL>
+							</CELL>
+						</LAYER_STACK>
+					</REPEAT>
+			</REPEAT>
+		</CELL>
+	</LAYER_STACK>
+
+	<!-- param links -->
+	<!-- <LV id="FP_COUNT_SWITCHES" value="0" /> -->
+	<REPEAT count="#in_params_count#">
+	  <PARAM_LINK from="$script_input_param$index$_steps$" to="input_control$index$.positions_count"/>
+	  <PARAM_LINK from="$script_input_param$index$_steps$" to="input_control_menu$index$.positions_count"/>
+	  <PARAM_LINK from="$script_input_param$index$_steps$" to="input_control$index$.visible" formula="x!=2"/>
+	  <PARAM_LINK from="$script_input_param$index$_steps$" to="input_control_switch$index$.visible" formula="x==2"/>
+	  <PARAM_LINK from="$script_input_param$index$_steps$" to="input_control_menu$index$.visible" formula="(x>=2)and(x&lt;=50)"/>
+	  <!--
+	  <LV id="FP_COUNT_SWITCHES" value="$FP_COUNT_SWITCHES$ + input_control_switch$index$.visible" />
+		-->
+	</REPEAT>
+	
+	<!-- count number of used params -->
+	<!--
+	<FORMULA_PARAM id="a_AL_switches_count" formula="$FP_COUNT_SWITCHES$" exposed="true" />
+	<PARAM id="a_AL_inputs_count" default="#in_params_count#" max="100" />
+	<PARAM id="a_AL_outputs_count" default="#out_params_count#" max="100" />
+	-->
+
+	<!-- link them to params in common.inc -->
+	<!--
+	<PARAM_LINK from="a_AL_switches_count" to="AL_switches_count" />
+	<PARAM_LINK from="a_AL_inputs_count" to="AL_inputs_count" />
+	<PARAM_LINK from="a_AL_outputs_count" to="AL_outputs_count" />
+	-->
+	
+</R>
+
+<REPEAT count="#out_strings_count# > 0" index_name="__none41">
+	<INC file="$EXTENSIONS_DIR$log.inc" />
+	<LOG string_id="$script_output_string0$" />
+</REPEAT>
+
+<!-- set flag that kuiml has loaded fine -->
+<ONLOAD script="script_kuiml_loaded_ok = 1;" requires="script_kuiml_loaded_ok" />
+</SKIN>
